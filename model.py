@@ -104,7 +104,7 @@ class Model(nn.Module):
         padding_mask = generate_padding_mask(bert_input, self.padding_value) # BxS
 
         if bert_input.is_cuda:
-            padding_mask = src_padding_mask.cuda()
+            padding_mask = padding_mask.cuda()
 
         encoder_output = self.encode(bert_input, bert_input_char, padding_mask=padding_mask) # BxSxd_model
         logit = self.linear_out(encoder_output)
