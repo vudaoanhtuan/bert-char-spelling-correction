@@ -72,3 +72,19 @@ class Tokenizer:
         token = [0.0] * len(self.char_itos)
         token[char] = 1 * 0.1
         return token
+
+
+def load_vocab(char_vocab_path, word_vocab_path):
+    with open(char_vocab_path) as f:
+        char_vocab = f.read().split('\n')
+        if len(char_vocab[-1]) == 0:
+            char_vocab = char_vocab[:-1]
+    
+    with open(word_vocab_path) as f:
+        word_vocab = f.read().split('\n')
+        if len(word_vocab[-1]) == 0:
+            word_vocab = word_vocab[:-1]
+
+    tokenizer = Tokenizer(char_vocab, word_vocab)
+
+    return tokenizer
