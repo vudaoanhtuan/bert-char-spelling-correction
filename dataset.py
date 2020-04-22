@@ -37,45 +37,30 @@ class BERTDataset(Dataset):
         return self.corpus_lines
 
     def __getitem__(self, item):
-        t1, t2, is_next_label = self.random_sent(item)
-        t1_random, t1_label, t1_char_token = self.random_word(t1)
-        t2_random, t2_label, t2_char_token = self.random_word(t2)
+        sent = self.get_corpus_line(item)
+        tokens, output_label, tokens_char = self.random_word(sent)
 
-        # [CLS] tag = BOS tag, [SEP] tag = EOS tag
-        t1 = [self.vocab.bos] + t1_random + [self.vocab.eos]
-        t2 = t2_random + [self.vocab.eos]
-
-        t1_label = [self.vocab.pad] + t1_label + [self.vocab.pad]
-        t2_label = t2_label + [self.vocab.pad]
-
-        t1_char_token = [self.vocab.tokenize_special_char(self.vocab.bos)] \
-            + t1_char_token \
-            + [self.vocab.tokenize_special_char(self.vocab.eos)]
-        t2_char_token = t2_char_token + [self.vocab.tokenize_special_char(self.vocab.eos)]
-
-        segment_label = ([1 for _ in range(len(t1))] + [2 for _ in range(len(t2))])[:self.seq_len]
-        bert_input = (t1 + t2)[:self.seq_len]
-        bert_label = (t1_label + t2_label)[:self.seq_len]
-        bert_input_char = (t1_char_token + t2_char_token)[:self.seq_len]
+        bert_input = tokens[:self.seq_len]
+        bert_label = output_label[:self.seq_len]
+        bert_input_char = tokens_char[:self.seq_len]
 
         padding = [self.vocab.pad for _ in range(self.seq_len - len(bert_input))]
         char_padding = [self.vocab.tokenize_special_char(self.vocab.pad) \
             for _ in range(self.seq_len - len(bert_input))]
-        bert_input.extend(padding), bert_label.extend(padding), segment_label.extend(padding)
+        bert_input.extend(padding)
+        bert_label.extend(padding)
         bert_input_char.extend(char_padding)
 
         output = {"bert_input": bert_input,
                   "bert_label": bert_label,
-                  "segment_label": segment_label,
-                  "is_next": is_next_label,
                   "bert_input_char": bert_input_char}
 
         return {key: torch.tensor(value) for key, value in output.items()}
 
-    def random_word(self, tokens):
-        # tokens = sentence.split()
+    def random_word(self, sentence):
+        tokens = sentence.split()
         output_label = []
-        token_char = []
+        tokens_char = []
 
         for i, token in enumerate(tokens):
             prob_change_word = random.random()
@@ -93,6 +78,7 @@ class BERTDataset(Dataset):
                 # 10% randomly change token to random token
                 elif prob < 0.9:
                     tokens[i] = random.randrange(len(self.vocab.word_stoi))
+                    cur_word = self.vocab.word_itos[tokens[i]]
 
                 # 10% randomly change token to current token
                 else:
@@ -103,18 +89,9 @@ class BERTDataset(Dataset):
             else:
                 tokens[i] = self.vocab.word_stoi.get(token, self.vocab.unk)
                 output_label.append(0)
-            token_char.append(self.vocab.tokenize_onehot(cur_word))
+            tokens_char.append(self.vocab.tokenize_onehot(cur_word))
 
-        return tokens, output_label, token_char
-
-    def random_sent(self, index):
-        t1, t2 = self.get_corpus_line(index)
-
-        # output_text, label(isNotNext:0, isNext:1)
-        if random.random() > 0.5:
-            return t1, t2, 1
-        else:
-            return t1, self.get_random_line(), 0
+        return tokens, output_label, tokens_char
 
     def get_corpus_line(self, item):
         if self.on_memory:
@@ -129,26 +106,4 @@ class BERTDataset(Dataset):
                 self.file = open(self.corpus_path, "r", encoding=self.encoding)
                 line = self.file.__next__()
 
-        words = line[:-1].split()
-        wl = len(words)
-        pos = random.randint(int(0.35*wl), int(0.65*wl))
-        return words[:pos], words[pos:]
-
-    def get_random_line(self):
-        if self.on_memory:
-            line = self.lines[random.randrange(len(self.lines))]
-        else:
-            try:
-                line = self.file.__next__()
-            except:
-                line = None
-            if line is None:
-                self.file.close()
-                self.file = open(self.corpus_path, "r", encoding=self.encoding)
-                for _ in range(random.randint(0, self.corpus_lines if self.corpus_lines < 1000 else 1000)):
-                    self.random_file.__next__()
-                line = self.random_file.__next__()
-        words = line[:-1].split()
-        wl = len(words)
-        pos = random.randint(int(0.35*wl), int(0.65*wl))
-        return words[pos:]
+        return line
