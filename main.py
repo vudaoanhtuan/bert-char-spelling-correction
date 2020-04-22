@@ -18,7 +18,7 @@ parser.add_argument('--train_file', required=True)
 parser.add_argument('--test_file', required=True)
 parser.add_argument('--model_config')
 parser.add_argument('--batch_size', default=32, type=int)
-parser.add_argument('--learning_rate', default=1e-3, type=float)
+parser.add_argument('--learning_rate', default=1e-4, type=float)
 parser.add_argument('--num_epoch', default=10, type=int)
 parser.add_argument('--device', default='cpu')
 parser.add_argument('--log_dir', default='logs')
@@ -47,7 +47,7 @@ if __name__ == "__main__":
         config = {}
 
     model = Model(char_vocab_len, word_vocab_len, **config)
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, betas=(0.9, 0.98), eps=1e-9)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, betas=(0.9, 0.999), eps=1e-9)
     sched = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=len(train_dl))
     trainner = Trainer(
         model, optimizer, train_dl, test_dl, 
