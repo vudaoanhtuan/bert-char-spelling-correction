@@ -37,16 +37,14 @@ class Tokenizer:
     def _token_to_id(self, tokens, stoi):
         idxs = []
         for t in tokens:
-            idx = stoi.get(t)
-            idx = idx if idx else self.unk
+            idx = stoi.get(t, self.unk)
             idxs.append(idx)
         return idxs
 
     def _id_to_token(self, idxs, itos):
         tokens = []
         for i in idxs:
-            t = itos.get(i)
-            t = t if t else self.special[self.unk]
+            t = itos.get(i, self.special[self.unk])
             tokens.append(t)
         return tokens
     
@@ -65,7 +63,7 @@ class Tokenizer:
             word = word.lower()
         token = [0.0] * len(self.char_itos)
         for c in word:
-            token[self.char_stoi[c]] += 1 * 0.1
+            token[self.char_stoi.get(c, self.unk)] += 1 * 0.1
         return token
     
     def tokenize_special_char(self, char):
